@@ -27,8 +27,8 @@ export default defineConfig({
     port: 3000,
     host: true,
     https: {
-      key: fs.readFileSync('./fedora.local-key.pem'),
-      cert: fs.readFileSync('./fedora.local.pem')
+      key: fs.readFileSync('./vinicius.local-key.pem'),
+      cert: fs.readFileSync('./vinicius.local.pem')
     },
     proxy: {
       '/api': {

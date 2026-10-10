@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
 
 const app = express();
 app.use(cors());
@@ -83,7 +84,9 @@ app.delete('/api/cards/:id', (req, res) => {
   });
 });
 
-const PORT = 3001;
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
+
+const PORT = 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Backend running on port ${PORT}`);
 });
