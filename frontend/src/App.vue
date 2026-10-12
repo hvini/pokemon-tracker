@@ -1,12 +1,12 @@
 <template>
   <div class="max-w-4xl mx-auto p-4">
     <h1 class="text-3xl font-bold text-center mb-6 text-red-600">Pokémon TCG Portfolio</h1>
-    
+
     <!-- Add Card Form -->
     <div class="bg-white p-6 rounded-lg shadow-md mb-8">
       <h2 class="text-xl font-semibold mb-4">Add a Card</h2>
       <form @submit.prevent="addCard" class="space-y-4">
-        
+
         <div>
           <label class="block text-sm font-medium text-gray-700">Set</label>
           <select v-model="form.setName" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 bg-gray-50">
@@ -20,22 +20,41 @@
             <optgroup label="Sword & Shield Series (2020-2023)">
               <option v-for="set in swshSets" :key="set" :value="set">{{ set }}</option>
             </optgroup>
+            <optgroup label="Sun & Moon Series (2017-2019)">
+              <option v-for="set in smSets" :key="set" :value="set">{{ set }}</option>
+            </optgroup>
           </select>
         </div>
 
-        <div>
+
+        <div class="relative">
           <label class="block text-sm font-medium text-gray-700">Card Name (Searchable)</label>
           <input 
-            v-model="form.cardName" 
-            list="pokemon-names" 
-            required 
-            placeholder="Start typing a Pokémon name..." 
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 bg-gray-50" 
-          />
-          <datalist id="pokemon-names">
-            <option v-for="pokemon in allPokemonNames" :key="pokemon" :value="pokemon"></option>
-          </datalist>
-          <p class="text-xs text-gray-500 mt-1">You can add numbers/details after selecting (e.g., "Pikachu ex 001/050")</p>
+                 v-model="form.cardName" 
+                 @focus="showSuggestions = true"
+                 @input="showSuggestions = true"
+                 @blur="hideSuggestions"
+                 required 
+                 autocomplete="off"
+                 placeholder="Start typing a Pokémon name..." 
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 bg-gray-50" 
+                 />
+
+          <!-- Custom Vue Dropdown -->
+          <ul 
+                 v-if="showSuggestions && suggestedPokemonNames.length"
+                 class="absolute z-10 w-full bg-white border border-gray-300 mt-1 max-h-48 overflow-y-auto rounded-md shadow-lg"
+                 >
+                 <li 
+                 v-for="pokemon in suggestedPokemonNames" 
+                 :key="pokemon"
+                 @click="selectPokemon(pokemon)"
+                 class="px-4 py-2 hover:bg-red-50 active:bg-red-100 cursor-pointer border-b last:border-b-0 border-gray-100 text-gray-800"
+                 >
+                 {{ pokemon }}
+                 </li>
+          </ul>
+            <p class="text-xs text-gray-500 mt-1">You can add numbers/details after selecting (e.g., "Pikachu ex 001/050")</p>
         </div>
 
         <div>
@@ -59,11 +78,11 @@
         <!-- Search Filter -->
         <div class="w-full sm:w-64">
           <input 
-            v-model="searchQuery" 
-            type="text" 
-            placeholder="Search cards, sets, or variants..." 
-            class="block w-full rounded-md border-gray-300 shadow-sm border p-2 bg-gray-50 text-sm"
-          />
+             v-model="searchQuery" 
+             type="text" 
+             placeholder="Search cards, sets, or variants..." 
+             class="block w-full rounded-md border-gray-300 shadow-sm border p-2 bg-gray-50 text-sm"
+             />
         </div>
       </div>
 
@@ -99,7 +118,7 @@
                   <button 
                     @click="removeCard(card.id)" 
                     class="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1 rounded-md transition"
-                  >
+                    >
                     Remove
                   </button>
                 </td>
@@ -107,24 +126,24 @@
             </tbody>
           </table>
         </div>
-        
+
         <!-- Pagination Controls -->
         <div class="flex justify-between items-center mt-4 text-sm text-gray-700">
           <button 
-            @click="currentPage--" 
-            :disabled="currentPage === 1"
-            class="px-4 py-2 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition"
-          >
-            Previous
+             @click="currentPage--" 
+             :disabled="currentPage === 1"
+             class="px-4 py-2 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition"
+             >
+             Previous
           </button>
-          <span>Page {{ currentPage }} of {{ totalPages || 1 }}</span>
-          <button 
-            @click="currentPage++" 
-            :disabled="currentPage >= totalPages"
-            class="px-4 py-2 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition"
-          >
-            Next
-          </button>
+            <span>Page {{ currentPage }} of {{ totalPages || 1 }}</span>
+            <button 
+             @click="currentPage++" 
+             :disabled="currentPage >= totalPages"
+             class="px-4 py-2 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition"
+             >
+             Next
+            </button>
         </div>
       </div>
     </div>
@@ -132,11 +151,11 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+  import { ref, shallowRef, computed, watch, onMounted } from 'vue'
 
 const anniversarySets = [
   '30th Celebration', 
-  'McDonald\'s 30th Anniversary Promo (2026)'
+  'McDonald\'s 30th Anniversary Promo (2021)'
 ]
 
 const svSets = [
@@ -144,7 +163,8 @@ const svSets = [
   '151', 'Paradox Rift', 'Paldean Fates', 'Temporal Forces', 
   'Twilight Masquerade', 'Shrouded Fable', 'Stellar Crown', 
   'Surging Sparks', 'Prismatic Evolutions', 'Journey Together', 
-  'Destined Rivals', 'Black Bolt & White Flare', 'Mega Evolution'
+  'Destined Rivals', 'Black Bolt & White Flare', 'Mega Evolution',
+  'Scarlet & Violet Promos (SVP)', 'Scarlet & Violet Energies (SVE)'
 ]
 
 const swshSets = [
@@ -153,7 +173,12 @@ const swshSets = [
   'Battle Styles', 'Chilling Reign', 'Evolving Skies', 
   'Celebrations', 'Fusion Strike', 'Brilliant Stars', 
   'Astral Radiance', 'Pokémon GO', 'Lost Origin', 
-  'Silver Tempest', 'Crown Zenith'
+  'Silver Tempest', 'Crown Zenith', 'Sword & Shield Promos (SWSH)'
+]
+
+const smSets = [
+  'Cosmic Eclipse', 'Hidden Fates', 'Unified Minds',
+  'Unbroken Bonds', 'Team Up', 'Sun & Moon Promos'
 ]
 
 const variants = [
@@ -169,8 +194,9 @@ const form = ref({
   variant: ''
 })
 
+
 const portfolio = ref([])
-const allPokemonNames = ref([])
+const allPokemonNames = shallowRef([])
 const apiUrl = `/api/cards`
 
 // Pagination and Search State
@@ -178,10 +204,32 @@ const searchQuery = ref('')
 const currentPage = ref(1)
 const itemsPerPage = 10
 
+const showSuggestions = ref(false)
+
+const hideSuggestions = () => {
+  setTimeout(() => {
+    showSuggestions.value = false
+  }, 200)
+}
+
+const selectPokemon = (name) => {
+  form.value.cardName = name
+  showSuggestions.value = false
+}
+
+const suggestedPokemonNames = computed(() => {
+  const query = form.value.cardName.toLowerCase()
+  if (!query) return allPokemonNames.value.slice(0, 20)
+
+  return allPokemonNames.value
+    .filter(name => name.toLowerCase().includes(query))
+    .slice(0, 20)
+})
+
 // Computed property to filter the portfolio based on search input
 const filteredPortfolio = computed(() => {
   if (!searchQuery.value) return portfolio.value
-  
+
   const query = searchQuery.value.toLowerCase()
   return portfolio.value.filter(card => 
     card.cardName.toLowerCase().includes(query) ||
@@ -235,10 +283,10 @@ const addCard = async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form.value)
     })
-    
+
     form.value.cardName = ''
     form.value.variant = ''
-    
+
     await fetchPortfolio()
   } catch (error) {
     console.error("Error adding card:", error)
@@ -251,7 +299,7 @@ const removeCard = async (id) => {
       method: 'DELETE'
     })
     await fetchPortfolio()
-    
+
     // Safety check: if removing the last item on the last page, go back one page
     if (paginatedPortfolio.value.length === 1 && currentPage.value > 1) {
       currentPage.value--

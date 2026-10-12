@@ -7,15 +7,16 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Initialize In-Memory SQLite Database
-const db = new sqlite3.Database(':memory:', (err) => {
+// Initialize Database securely to a physical file
+const dbPath = path.join(__dirname, 'pokemon.db');
+const db = new sqlite3.Database(dbPath, (err) => {
   if (err) console.error(err.message);
-  console.log('Connected to the in-memory SQLite database.');
+  console.log('Connected to the permanent SQLite database.');
 });
 
-// Create Table
+// Use IF NOT EXISTS so it doesn't overwrite your data on restart
 db.serialize(() => {
-  db.run(`CREATE TABLE cards (
+  db.run(`CREATE TABLE IF NOT EXISTS cards (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     setName TEXT,
     cardName TEXT,
